@@ -18,4 +18,10 @@ describe("parseBitbucketPrUrl", () => {
       /bitbucket/i,
     );
   });
+
+  it("rejects lookalike hosts", () => {
+    expect(() =>
+      parseBitbucketPrUrl("https://evilbitbucket.org/acme/api/pull-requests/1"),
+    ).toThrow(/bitbucket/i);
+  });
 });

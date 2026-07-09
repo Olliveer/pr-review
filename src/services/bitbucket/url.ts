@@ -15,7 +15,8 @@ export function parseBitbucketPrUrl(raw: string): BitbucketPrRef {
     throw new Error(`Invalid URL: ${raw}`);
   }
 
-  if (!url.hostname.endsWith("bitbucket.org")) {
+  const host = url.hostname.toLowerCase();
+  if (host !== "bitbucket.org") {
     throw new Error(`Not a Bitbucket Cloud URL: ${raw}`);
   }
 
