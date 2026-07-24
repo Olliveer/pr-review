@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { formatGeneralComment } from "../../../src/services/bitbucket/format-comment.js";
+import { formatGeneralComment } from "../../../src/services/vcs/format-comment.ts";
 
 describe("formatGeneralComment", () => {
-  it("renders summary, risks, and suggestions", () => {
+  it("renders summary, risks, and suggestions in pt-BR", () => {
     const md = formatGeneralComment({
-      summary: "Solid change",
-      risks: ["No tests"],
-      suggestions: ["Add coverage"],
+      summary: "Mudança sólida",
+      risks: ["Sem testes"],
+      suggestions: ["Adicionar cobertura"],
       inlineComments: [],
     });
-    expect(md).toContain("## Summary");
-    expect(md).toContain("Solid change");
-    expect(md).toContain("## Risks");
-    expect(md).toContain("No tests");
-    expect(md).toContain("## Suggestions");
-    expect(md).toContain("Add coverage");
+    expect(md).toContain("## Resumo");
+    expect(md).toContain("Mudança sólida");
+    expect(md).toContain("## Riscos");
+    expect(md).toContain("Sem testes");
+    expect(md).toContain("## Sugestões");
+    expect(md).toContain("Adicionar cobertura");
+    expect(md).toContain("Review automatizado por pr-review");
   });
 });

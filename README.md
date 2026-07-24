@@ -1,6 +1,6 @@
 # pr-review
 
-Bitbucket Cloud PR reviewer powered by the Vercel AI SDK. Review a pull request from the CLI or automatically via webhook — the service fetches the diff, generates a structured review with an LLM, and posts a general PR comment plus inline comments on changed lines.
+PR reviewer powered by the Vercel AI SDK. Supports **Bitbucket Cloud** (CLI + webhook) and **GitHub.com** (CLI). Fetches the diff, generates a structured review with an LLM, posts a general PR comment plus inline comments on changed lines, and **always approves** the pull request afterward.
 
 Design spec: [docs/superpowers/specs/2026-07-09-pr-review-mvp-design.md](docs/superpowers/specs/2026-07-09-pr-review-mvp-design.md)
 
@@ -23,26 +23,39 @@ Design spec: [docs/superpowers/specs/2026-07-09-pr-review-mvp-design.md](docs/su
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `BITBUCKET_USERNAME` | Yes | — | Bitbucket Cloud username for API auth |
-| `BITBUCKET_APP_PASSWORD` | Yes | — | App password with `repository` and `pullrequest` scopes (see below) |
-| `BITBUCKET_WEBHOOK_SECRET` | Yes | — | Shared secret for validating incoming webhook payloads |
-| `AI_PROVIDER` | Yes | `openrouter` | LLM provider: `openrouter` or `ollama` |
-| `AI_MODEL` | Yes | `anthropic/claude-sonnet-4` | Model identifier for the chosen provider |
+| `VCS_PROVIDER` | No | `bitbucket` | `bitbucket` or `github` |
+| `BITBUCKET_USERNAME` | When `VCS_PROVIDER=bitbucket` | — | Atlassian account email (API token) or Bitbucket username |
+| `BITBUCKET_APP_PASSWORD` | When `VCS_PROVIDER=bitbucket` | — | Bitbucket API token / app password |
+| `BITBUCKET_WEBHOOK_SECRET` | When `VCS_PROVIDER=bitbucket` | — | Shared secret for validating Bitbucket webhooks |
+| `GITHUB_TOKEN` | When `VCS_PROVIDER=github` | — | GitHub PAT with `repo` (or fine-grained PR read/write) |
+| `AI_PROVIDER` | Yes | — | LLM provider: `openrouter` or `ollama` |
+| `AI_MODEL` | Yes | — | Model identifier for the chosen provider |
 | `OPENROUTER_API_KEY` | When `AI_PROVIDER=openrouter` | — | OpenRouter API key |
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama server URL when using `ollama` |
 | `PORT` | No | `3000` | HTTP port for the webhook server |
 | `MAX_DIFF_CHARS` | No | `80000` | Max diff size sent to the LLM; larger diffs are truncated |
 
-## Bitbucket App Password
+## Bitbucket credentials
 
-Create an [App Password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/) with these scopes:
+Prefer a [Bitbucket API token](https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/) with:
 
-- **Repository** — Read
-- **Pull requests** — Read, Write (needed to post general and inline comments)
+- `read:repository:bitbucket`
+- `read:pullrequest:bitbucket`
+- `write:pullrequest:bitbucket`
 
-Set `BITBUCKET_USERNAME` and `BITBUCKET_APP_PASSWORD` in `.env`.
+Set `BITBUCKET_USERNAME` to your **Atlassian account email** and `BITBUCKET_APP_PASSWORD` to the token.
 
-## Webhook setup
+## GitHub credentials
+
+Create a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) with permission to read the PR/diff, write issue + pull request review comments, and submit reviews (approve). Set `VCS_PROVIDER=github` and `GITHUB_TOKEN`.
+
+GitHub does not allow approving your own pull request — if the token user is the PR author, comments still post and `aprovado=false` is reported.
+
+GitHub webhook support is not implemented yet — use the CLI.
+
+## Bitbucket webhook setup
+
+Requires `VCS_PROVIDER=bitbucket`.
 
 1. Start the server (see [Commands](#commands)).
 2. In Bitbucket: **Repository settings → Webhooks → Add webhook**.
@@ -61,21 +74,24 @@ Health check: `GET /health` → `{ "ok": true }`.
 ### Development (no build)
 
 ```bash
-# Review a PR from the CLI
-npm run dev:cli -- https://bitbucket.org/{workspace}/{repo}/pull-requests/{id}
+# Bitbucket
+VCS_PROVIDER=bitbucket npm run dev:cli -- https://bitbucket.org/{workspace}/{repo}/pull-requests/{id}
 
-# Run the webhook server
-npm run dev:server
+# GitHub
+VCS_PROVIDER=github npm run dev:cli -- https://github.com/{owner}/{repo}/pull/{id}
+
+# Bitbucket webhook server
+VCS_PROVIDER=bitbucket npm run dev:server
 ```
 
 ### Production (after `npm run build`)
 
 ```bash
-# CLI — use node explicitly (tsc does not preserve the shebang)
 node dist/cli/index.js https://bitbucket.org/{workspace}/{repo}/pull-requests/{id}
+# or
+node dist/cli/index.js https://github.com/{owner}/{repo}/pull/{id}
 
-# Webhook server
-npm start
+npm start   # Bitbucket webhook only
 ```
 
 ### Tests
@@ -86,9 +102,9 @@ npm test
 
 ## Success criteria
 
-- **CLI:** `pr-review <bitbucket-pr-url>` (or `node dist/cli/index.js <url>`) fetches the PR, generates a review, and posts a general comment plus inline comments on changed lines.
-- **Webhook:** On pull request created or updated, the server returns `202` and runs the same review flow in the background.
-- **Providers:** Switching `AI_PROVIDER` between `openrouter` and `ollama` requires no changes to application code — only env vars.
+- **CLI (Bitbucket or GitHub):** fetches the PR, generates a review, posts a general comment plus inline comments.
+- **Webhook (Bitbucket only):** On pull request created or updated, the server returns `202` and runs the same review flow in the background.
+- **Providers:** Switching `AI_PROVIDER` / `VCS_PROVIDER` requires no business-logic changes — only env vars.
 
 ## Stack
 

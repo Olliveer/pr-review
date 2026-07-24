@@ -1,10 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import type { BitbucketPrRef } from "../../services/bitbucket/url.js";
+import type { PrRef } from "../../services/vcs/types.ts";
 
 export interface WebhookDeps {
   webhookSecret: string;
-  reviewPullRequest: (ref: BitbucketPrRef) => Promise<unknown>;
+  reviewPullRequest: (ref: PrRef) => Promise<unknown>;
 }
 
 function isValidSignature(
@@ -84,9 +84,9 @@ export async function registerBitbucketWebhook(
       return reply.code(400).send({ error: "missing pull request fields" });
     }
 
-    const ref: BitbucketPrRef = {
-      workspace,
-      repoSlug,
+    const ref: PrRef = {
+      owner: workspace,
+      repo: repoSlug,
       pullRequestId,
     };
 

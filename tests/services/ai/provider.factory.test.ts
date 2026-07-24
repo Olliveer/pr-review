@@ -14,7 +14,8 @@ vi.mock("ollama-ai-provider-v2", () => ({
   }),
 }));
 
-import { createModel } from "../../../src/services/ai/provider.factory.js";
+import { createOllama } from "ollama-ai-provider-v2";
+import { createModel } from "../../../src/services/ai/provider.factory.ts";
 
 describe("createModel", () => {
   it("creates an openrouter model", () => {
@@ -30,12 +31,15 @@ describe("createModel", () => {
     });
   });
 
-  it("creates an ollama model", () => {
+  it("creates an ollama model and normalizes baseURL with /api", () => {
     const model = createModel({
       AI_PROVIDER: "ollama",
-      AI_MODEL: "qwen3:32b",
+      AI_MODEL: "gemma4:e4b",
       OLLAMA_BASE_URL: "http://localhost:11434",
     });
-    expect(model).toMatchObject({ provider: "ollama", model: "qwen3:32b" });
+    expect(model).toMatchObject({ provider: "ollama", model: "gemma4:e4b" });
+    expect(createOllama).toHaveBeenCalledWith({
+      baseURL: "http://localhost:11434/api",
+    });
   });
 });

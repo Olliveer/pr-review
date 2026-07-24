@@ -1,13 +1,12 @@
-export interface BitbucketPrRef {
-  workspace: string;
-  repoSlug: string;
-  pullRequestId: number;
-}
+import type { PrRef } from "../vcs/types.ts";
+
+/** @deprecated Use PrRef — kept as alias for clarity in Bitbucket contexts */
+export type BitbucketPrRef = PrRef;
 
 const PR_PATH =
-  /^\/(?<workspace>[^/]+)\/(?<repoSlug>[^/]+)\/pull-requests\/(?<id>\d+)\/?$/;
+  /^\/(?<owner>[^/]+)\/(?<repo>[^/]+)\/pull-requests\/(?<id>\d+)\/?$/;
 
-export function parseBitbucketPrUrl(raw: string): BitbucketPrRef {
+export function parseBitbucketPrUrl(raw: string): PrRef {
   let url: URL;
   try {
     url = new URL(raw);
@@ -28,8 +27,8 @@ export function parseBitbucketPrUrl(raw: string): BitbucketPrRef {
   }
 
   return {
-    workspace: match.groups.workspace,
-    repoSlug: match.groups.repoSlug,
+    owner: match.groups.owner,
+    repo: match.groups.repo,
     pullRequestId: Number(match.groups.id),
   };
 }

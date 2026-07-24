@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { ReviewService } from "../../../src/services/review/review.service.js";
-import type { ReviewContext, ReviewResult } from "../../../src/types/review.js";
+import { ReviewService } from "../../../src/services/review/review.service.ts";
+import type { ReviewContext, ReviewResult } from "../../../src/types/review.ts";
 
 describe("ReviewService", () => {
   it("fetches, reviews, and posts", async () => {
@@ -23,31 +23,26 @@ describe("ReviewService", () => {
       inlineComments: [],
     };
 
-    const bitbucket = {
+    const vcs = {
       fetchReviewContext: vi.fn().mockResolvedValue(context),
       postReview: vi.fn().mockResolvedValue({
         generalPosted: true,
         inlinePosted: 0,
         inlineFailed: 0,
+        approved: true,
       }),
     };
     const ai = {
       review: vi.fn().mockResolvedValue(review),
     };
 
-    const service = new ReviewService(bitbucket as never, ai as never);
-    const result = await service.reviewPullRequest({
-      workspace: "acme",
-      repoSlug: "api",
-      pullRequestId: 9,
-    });
+    const service = new ReviewService(vcs as never, ai as never);
+    const ref = { owner: "acme", repo: "api", pullRequestId: 9 };
+    const result = await service.reviewPullRequest(ref);
 
-    expect(bitbucket.fetchReviewContext).toHaveBeenCalledOnce();
+    expect(vcs.fetchReviewContext).toHaveBeenCalledOnce();
     expect(ai.review).toHaveBeenCalledWith(context);
-    expect(bitbucket.postReview).toHaveBeenCalledWith(
-      { workspace: "acme", repoSlug: "api", pullRequestId: 9 },
-      review,
-    );
+    expect(vcs.postReview).toHaveBeenCalledWith(ref, review);
     expect(result.review.summary).toBe("ok");
   });
 });

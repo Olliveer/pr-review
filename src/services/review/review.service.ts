@@ -1,10 +1,10 @@
-import type { AIService } from "../ai/ai.service.js";
+import type { AIService } from "../ai/ai.service.ts";
 import type {
-  BitbucketService,
   PostReviewResult,
-} from "../bitbucket/bitbucket.service.js";
-import type { BitbucketPrRef } from "../bitbucket/url.js";
-import type { ReviewResult } from "../../types/review.js";
+  PrRef,
+  VcsService,
+} from "../vcs/types.ts";
+import type { ReviewResult } from "../../types/review.ts";
 
 export interface ReviewRunResult {
   review: ReviewResult;
@@ -13,14 +13,14 @@ export interface ReviewRunResult {
 
 export class ReviewService {
   constructor(
-    private readonly bitbucket: BitbucketService,
+    private readonly vcs: VcsService,
     private readonly ai: AIService,
   ) {}
 
-  async reviewPullRequest(ref: BitbucketPrRef): Promise<ReviewRunResult> {
-    const context = await this.bitbucket.fetchReviewContext(ref);
+  async reviewPullRequest(ref: PrRef): Promise<ReviewRunResult> {
+    const context = await this.vcs.fetchReviewContext(ref);
     const review = await this.ai.review(context);
-    const posting = await this.bitbucket.postReview(ref, review);
+    const posting = await this.vcs.postReview(ref, review);
     return { review, posting };
   }
 }

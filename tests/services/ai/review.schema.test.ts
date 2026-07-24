@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { reviewResultSchema } from "../../../src/services/ai/schemas/review.schema.js";
+import { reviewResponseSchema } from "../../../src/services/ai/schemas/review.schema.ts";
 
-describe("reviewResultSchema", () => {
+describe("reviewResponseSchema", () => {
   it("accepts a valid review payload", () => {
-    const parsed = reviewResultSchema.parse({
+    const parsed = reviewResponseSchema.parse({
       summary: "Looks good overall",
       risks: ["Missing tests"],
       suggestions: ["Add unit tests"],
@@ -21,13 +21,11 @@ describe("reviewResultSchema", () => {
 
   it("rejects invalid severity", () => {
     expect(() =>
-      reviewResultSchema.parse({
+      reviewResponseSchema.parse({
         summary: "x",
         risks: [],
         suggestions: [],
-        inlineComments: [
-          { path: "a.ts", line: 1, severity: "low", body: "x" },
-        ],
+        inlineComments: [{ path: "a.ts", line: 1, severity: "low", body: "x" }],
       }),
     ).toThrow();
   });

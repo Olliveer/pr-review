@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import Fastify from "fastify";
-import { registerBitbucketWebhook } from "../../src/server/routes/webhooks.bitbucket.js";
+import { registerBitbucketWebhook } from "../../src/server/routes/webhooks.bitbucket.ts";
 
 function sign(secret: string, rawBody: string): string {
   const digest = createHmac("sha256", secret).update(rawBody).digest("hex");
@@ -64,8 +64,8 @@ describe("POST /webhooks/bitbucket", () => {
     expect(res.statusCode).toBe(202);
     await new Promise((r) => setTimeout(r, 20));
     expect(review).toHaveBeenCalledWith({
-      workspace: "acme",
-      repoSlug: "api",
+      owner: "acme",
+      repo: "api",
       pullRequestId: 42,
     });
     await app.close();

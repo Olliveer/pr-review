@@ -20,8 +20,11 @@ export function createModel(config: ProviderConfig): LanguageModel {
     return openrouter(config.AI_MODEL);
   }
 
-  const ollama = createOllama({
-    baseURL: config.OLLAMA_BASE_URL,
-  });
+  // ollama-ai-provider-v2 defaults to http://localhost:11434/api
+  const baseURL = config.OLLAMA_BASE_URL.replace(/\/$/, "").endsWith("/api")
+    ? config.OLLAMA_BASE_URL.replace(/\/$/, "")
+    : `${config.OLLAMA_BASE_URL.replace(/\/$/, "")}/api`;
+
+  const ollama = createOllama({ baseURL });
   return ollama(config.AI_MODEL);
 }
