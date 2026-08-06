@@ -1,6 +1,6 @@
 # pr-review
 
-PR reviewer powered by the Vercel AI SDK. Supports **Bitbucket Cloud** (CLI + webhook) and **GitHub.com** (CLI). Fetches the diff, generates a structured review with an LLM, posts a general PR comment plus inline comments on changed lines, and **always approves** the pull request afterward.
+PR reviewer powered by the Vercel AI SDK. Supports **Bitbucket Cloud** (CLI + webhook) and **GitHub.com** (CLI). Fetches the diff, generates a structured review with an LLM, posts a general PR comment plus optional inline comments, and can approve the pull request afterward.
 
 Design spec: [docs/superpowers/specs/2026-07-09-pr-review-mvp-design.md](docs/superpowers/specs/2026-07-09-pr-review-mvp-design.md)
 
@@ -21,19 +21,23 @@ Design spec: [docs/superpowers/specs/2026-07-09-pr-review-mvp-design.md](docs/su
 
 ## Environment variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `VCS_PROVIDER` | No | `bitbucket` | `bitbucket` or `github` |
-| `BITBUCKET_USERNAME` | When `VCS_PROVIDER=bitbucket` | — | Atlassian account email (API token) or Bitbucket username |
-| `BITBUCKET_APP_PASSWORD` | When `VCS_PROVIDER=bitbucket` | — | Bitbucket API token / app password |
-| `BITBUCKET_WEBHOOK_SECRET` | When `VCS_PROVIDER=bitbucket` | — | Shared secret for validating Bitbucket webhooks |
-| `GITHUB_TOKEN` | When `VCS_PROVIDER=github` | — | GitHub PAT with `repo` (or fine-grained PR read/write) |
-| `AI_PROVIDER` | Yes | — | LLM provider: `openrouter` or `ollama` |
-| `AI_MODEL` | Yes | — | Model identifier for the chosen provider |
-| `OPENROUTER_API_KEY` | When `AI_PROVIDER=openrouter` | — | OpenRouter API key |
-| `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama server URL when using `ollama` |
-| `PORT` | No | `3000` | HTTP port for the webhook server |
-| `MAX_DIFF_CHARS` | No | `80000` | Max diff size sent to the LLM; larger diffs are truncated |
+| Variable                   | Required                      | Default                  | Description                                                       |
+| -------------------------- | ----------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| `VCS_PROVIDER`             | No                            | `bitbucket`              | `bitbucket` or `github`                                           |
+| `BITBUCKET_USERNAME`       | When `VCS_PROVIDER=bitbucket` | —                        | Atlassian account email (API token) or Bitbucket username         |
+| `BITBUCKET_APP_PASSWORD`   | When `VCS_PROVIDER=bitbucket` | —                        | Bitbucket API token / app password                                |
+| `BITBUCKET_WEBHOOK_SECRET` | When `VCS_PROVIDER=bitbucket` | —                        | Shared secret for validating Bitbucket webhooks                   |
+| `GITHUB_TOKEN`             | When `VCS_PROVIDER=github`    | —                        | GitHub PAT with `repo` (or fine-grained PR read/write)            |
+| `AI_PROVIDER`              | Yes                           | —                        | LLM provider: `openrouter` or `ollama`                            |
+| `AI_MODEL`                 | Yes                           | —                        | Model identifier for the chosen provider                          |
+| `OPENROUTER_API_KEY`       | When `AI_PROVIDER=openrouter` | —                        | OpenRouter API key                                                |
+| `OLLAMA_BASE_URL`          | No                            | `http://localhost:11434` | Ollama server URL when using `ollama`                             |
+| `PORT`                     | No                            | `3000`                   | HTTP port for the webhook server                                  |
+| `MAX_DIFF_CHARS`           | No                            | `80000`                  | Max diff size sent to the LLM; larger diffs are truncated         |
+| `REVIEW_SEVERITY_MIN`      | No                            | `warning`                | Minimum inline severity to keep: `info`, `warning`, or `critical` |
+| `REVIEW_FOCUS`             | No                            | `all`                    | Prompt focus: `all`, `bugs`, `security`, or `performance`         |
+| `REVIEW_INLINE`            | No                            | `true`                   | Post inline comments (`true` / `false`)                           |
+| `REVIEW_APPROVE`           | No                            | `true`                   | Approve the PR after posting comments (`true` / `false`)          |
 
 ## Bitbucket credentials
 

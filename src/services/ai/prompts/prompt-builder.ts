@@ -3,31 +3,56 @@ import {
   extractDiffAnchors,
   listAnchorPaths,
 } from "../diff-anchors.ts";
+import {
+  focusInstruction,
+  type ReviewFocus,
+  type ReviewSeverityMin,
+} from "../review-policy.ts";
 import { REVIEW_RESPONSE_SCHEMA_EXAMPLE } from "../schemas/review.schema.ts";
 
-export function buildReviewPrompt(context: ReviewContext): {
+export interface PromptOptions {
+  focus?: ReviewFocus;
+  severityMin?: ReviewSeverityMin;
+  inline?: boolean;
+}
+
+export function buildReviewPrompt(
+  context: ReviewContext,
+  options: PromptOptions = {},
+): {
   system: string;
   user: string;
 } {
+  const focus = options.focus ?? "all";
+  const severityMin = options.severityMin ?? "warning";
+  const inline = options.inline ?? true;
   const anchors = extractDiffAnchors(context.diff);
   const paths = listAnchorPaths(anchors);
 
   const system = [
     "Você é um engenheiro de software sênior fazendo code review de um pull request.",
-    "Foque em bugs, segurança, regressões, testes faltando e clareza do código.",
+    focusInstruction(focus),
     "TODO o conteúdo textual da resposta (summary, risks, suggestions e body dos inlineComments) DEVE estar em português do Brasil (pt-BR).",
     "Os nomes das chaves JSON permanecem em inglês conforme o schema.",
     "Responda apenas com um único objeto JSON válido, sem crases, sem markdown e sem nenhum texto antes ou depois do JSON.",
     "Formato obrigatório (exemplo de estrutura, não os valores):",
     JSON.stringify(REVIEW_RESPONSE_SCHEMA_EXAMPLE),
     "'severity' deve ser exatamente um de: info, warning, critical.",
-    "Comentários inline: o campo path DEVE ser um path exato da lista de arquivos do diff (nunca invente paths como nomes de classe/modelo).",
-    "O campo line DEVE ser um número de linha do lado novo (destination) que aparece no diff desse arquivo.",
+    `Severidade mínima desejada para inlineComments: ${severityMin}. Prefira não emitir comentários abaixo desse nível.`,
+    inline
+      ? "Comentários inline: o campo path DEVE ser um path exato da lista de arquivos do diff (nunca invente paths como nomes de classe/modelo)."
+      : "NÃO inclua comentários inline: deixe inlineComments como [].",
+    inline
+      ? "O campo line DEVE ser um número de linha do lado novo (destination) que aparece no diff desse arquivo."
+      : "",
     "Prefira poucos comentários inline de alto sinal, evitando nitpicks triviais de estilo. Arrays vazios são permitidos quando não houver achados.",
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const pathsSection =
-    paths.length > 0
+  const pathsSection = !inline
+    ? "Inline desabilitado nesta execução — deixe inlineComments como []."
+    : paths.length > 0
       ? `Arquivos válidos para inlineComments.path (use exatamente estes valores):\n${paths.map((p) => `- ${p}`).join("\n")}`
       : "Nenhum arquivo com linhas ancoráveis no diff — deixe inlineComments como [].";
 
@@ -43,6 +68,8 @@ export function buildReviewPrompt(context: ReviewContext): {
     `Autor: ${context.author || "(desconhecido)"}`,
     `Branch de origem: ${context.sourceBranch}`,
     `Branch de destino: ${context.destinationBranch}`,
+    `Foco do review: ${focus}`,
+    `Severidade mínima (inline): ${severityMin}`,
     `Descrição:\n${context.description || "(nenhuma)"}`,
     pathsSection,
     diffSection,

@@ -41,6 +41,19 @@ describe("buildReviewPrompt", () => {
     expect(user).toContain("- src/auth.ts");
   });
 
+  it("applies focus and severity options in the prompt", () => {
+    const { system, user } = buildReviewPrompt(ctx, {
+      focus: "performance",
+      severityMin: "critical",
+      inline: false,
+    });
+    expect(system).toMatch(/performance/i);
+    expect(system).toMatch(/NÃO inclua comentários inline/i);
+    expect(user).toContain("Foco do review: performance");
+    expect(user).toContain("Severidade mínima (inline): critical");
+    expect(user).toContain("Inline desabilitado");
+  });
+
   it("mentions truncation when truncated", () => {
     const { user } = buildReviewPrompt({ ...ctx, truncated: true });
     expect(user).toMatch(/truncado/i);

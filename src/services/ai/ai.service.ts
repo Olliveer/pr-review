@@ -10,16 +10,36 @@ import {
 } from "./parse-review-output.ts";
 import { buildReviewPrompt } from "./prompts/prompt-builder.ts";
 import { createModel, type ProviderConfig } from "./provider.factory.ts";
+import {
+  applyReviewPolicy,
+  type ReviewFocus,
+  type ReviewSeverityMin,
+} from "./review-policy.ts";
 import { reviewResponseSchema } from "./schemas/review.schema.ts";
 
 const MAX_ATTEMPTS = 3; // initial + 2 retries
 
+export interface AIServiceOptions {
+  severityMin?: ReviewSeverityMin;
+  focus?: ReviewFocus;
+  inline?: boolean;
+}
+
 export class AIService {
-  constructor(private readonly config: ProviderConfig) {}
+  constructor(
+    private readonly config: ProviderConfig,
+    private readonly options: AIServiceOptions = {},
+  ) {}
 
   async review(context: ReviewContext): Promise<ReviewResult> {
+    const policy = {
+      severityMin: this.options.severityMin ?? "warning",
+      focus: this.options.focus ?? "all",
+      inline: this.options.inline ?? true,
+    };
+
     const model = createModel(this.config);
-    const { system, user } = buildReviewPrompt(context);
+    const { system, user } = buildReviewPrompt(context, policy);
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -98,6 +118,12 @@ export class AIService {
       );
     }
 
-    return { ...review, inlineComments: kept };
+    return applyReviewPolicy(
+      { ...review, inlineComments: kept },
+      {
+        severityMin: this.options.severityMin ?? "warning",
+        inline: this.options.inline ?? true,
+      },
+    );
   }
 }

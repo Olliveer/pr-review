@@ -75,16 +75,14 @@ describe("AIService", () => {
   });
 
   it("retries when output is null then succeeds", async () => {
-    generateText
-      .mockResolvedValueOnce({ output: null })
-      .mockResolvedValueOnce({
-        output: {
-          summary: "retry-ok",
-          risks: [],
-          suggestions: [],
-          inlineComments: [],
-        },
-      });
+    generateText.mockResolvedValueOnce({ output: null }).mockResolvedValueOnce({
+      output: {
+        summary: "retry-ok",
+        risks: [],
+        suggestions: [],
+        inlineComments: [],
+      },
+    });
 
     const service = new AIService({
       AI_PROVIDER: "ollama",
@@ -141,11 +139,14 @@ describe("AIService", () => {
       },
     });
 
-    const service = new AIService({
-      AI_PROVIDER: "ollama",
-      AI_MODEL: "qwen3:32b",
-      OLLAMA_BASE_URL: "http://localhost:11434",
-    });
+    const service = new AIService(
+      {
+        AI_PROVIDER: "ollama",
+        AI_MODEL: "qwen3:32b",
+        OLLAMA_BASE_URL: "http://localhost:11434",
+      },
+      { severityMin: "info" },
+    );
 
     const result = await service.review({
       ...ctx,
@@ -166,5 +167,73 @@ describe("AIService", () => {
         body: "valid",
       },
     ]);
+  });
+
+  it("filters inlines by severityMin and can disable inline", async () => {
+    generateText.mockResolvedValue({
+      output: {
+        summary: "ok",
+        risks: [],
+        suggestions: [],
+        inlineComments: [
+          { path: "a.ts", line: 1, severity: "info", body: "nit" },
+          { path: "a.ts", line: 1, severity: "critical", body: "bug" },
+        ],
+      },
+    });
+
+    const withSeverity = new AIService(
+      {
+        AI_PROVIDER: "ollama",
+        AI_MODEL: "qwen3:32b",
+        OLLAMA_BASE_URL: "http://localhost:11434",
+      },
+      { severityMin: "critical", inline: true },
+    );
+
+    const filtered = await withSeverity.review({
+      ...ctx,
+      diff: `diff --git a/a.ts b/a.ts
+--- a/a.ts
++++ b/a.ts
+@@ -1,1 +1,2 @@
++export const ok = true;
+ const x = 1;
+`,
+    });
+    expect(filtered.inlineComments).toEqual([
+      { path: "a.ts", line: 1, severity: "critical", body: "bug" },
+    ]);
+
+    generateText.mockResolvedValue({
+      output: {
+        summary: "ok",
+        risks: [],
+        suggestions: [],
+        inlineComments: [
+          { path: "a.ts", line: 1, severity: "critical", body: "bug" },
+        ],
+      },
+    });
+
+    const noInline = new AIService(
+      {
+        AI_PROVIDER: "ollama",
+        AI_MODEL: "qwen3:32b",
+        OLLAMA_BASE_URL: "http://localhost:11434",
+      },
+      { inline: false },
+    );
+    const cleared = await noInline.review({
+      ...ctx,
+      diff: `diff --git a/a.ts b/a.ts
+--- a/a.ts
++++ b/a.ts
+@@ -1,1 +1,2 @@
++export const ok = true;
+ const x = 1;
+`,
+    });
+    expect(cleared.inlineComments).toEqual([]);
   });
 });

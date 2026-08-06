@@ -152,4 +152,44 @@ describe("GitHubService", () => {
     expect(result.generalPosted).toBe(true);
     expect(result.approved).toBe(false);
   });
+
+  it("skips approval when approve is false", async () => {
+    get.mockResolvedValueOnce({
+      data: {
+        title: "t",
+        body: "",
+        user: { login: "u" },
+        head: { ref: "feat", sha: "deadbeef" },
+        base: { ref: "main" },
+      },
+    });
+    get.mockResolvedValueOnce({ data: "diff" });
+    post.mockResolvedValueOnce({ data: { id: 1 } });
+
+    const service = new GitHubService({
+      token: "ghp_test",
+      maxDiffChars: 80_000,
+      approve: false,
+    });
+
+    await service.fetchReviewContext({
+      owner: "acme",
+      repo: "api",
+      pullRequestId: 7,
+    });
+
+    const result = await service.postReview(
+      { owner: "acme", repo: "api", pullRequestId: 7 },
+      {
+        summary: "ok",
+        risks: [],
+        suggestions: [],
+        inlineComments: [],
+      },
+    );
+
+    expect(result.approved).toBe(false);
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0]?.[0]).toContain("/issues/7/comments");
+  });
 });

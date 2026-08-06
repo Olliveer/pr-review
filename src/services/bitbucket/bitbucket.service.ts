@@ -11,6 +11,7 @@ export interface BitbucketConfig {
   username: string;
   appPassword: string;
   maxDiffChars: number;
+  approve?: boolean;
 }
 
 export type { PostReviewResult };
@@ -106,13 +107,15 @@ export class BitbucketService implements VcsService {
     });
 
     let approved = false;
-    try {
-      await this.http.post(
-        `/repositories/${ref.owner}/${ref.repo}/pullrequests/${ref.pullRequestId}/approve`,
-      );
-      approved = true;
-    } catch (error) {
-      console.error("Falha ao aprovar o pull request", error);
+    if (this.config.approve !== false) {
+      try {
+        await this.http.post(
+          `/repositories/${ref.owner}/${ref.repo}/pullrequests/${ref.pullRequestId}/approve`,
+        );
+        approved = true;
+      } catch (error) {
+        console.error("Falha ao aprovar o pull request", error);
+      }
     }
 
     return { generalPosted: true, inlinePosted, inlineFailed, approved };

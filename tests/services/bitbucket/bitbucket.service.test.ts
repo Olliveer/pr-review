@@ -87,4 +87,29 @@ describe("BitbucketService", () => {
     expect(post.mock.calls[1]?.[1].content.raw).toContain("## Resumo");
     expect(post.mock.calls[2]?.[0]).toContain("/pullrequests/7/approve");
   });
+
+  it("skips approval when approve is false", async () => {
+    post.mockResolvedValueOnce({ data: { id: 1 } });
+
+    const service = new BitbucketService({
+      username: "user",
+      appPassword: "pass",
+      maxDiffChars: 80_000,
+      approve: false,
+    });
+
+    const result = await service.postReview(
+      { owner: "acme", repo: "api", pullRequestId: 7 },
+      {
+        summary: "ok",
+        risks: [],
+        suggestions: [],
+        inlineComments: [],
+      },
+    );
+
+    expect(result.approved).toBe(false);
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0]?.[1].content.raw).toContain("## Resumo");
+  });
 });

@@ -10,6 +10,7 @@ function createVcsService(env: Env): VcsService {
     return new GitHubService({
       token: env.GITHUB_TOKEN!,
       maxDiffChars: env.MAX_DIFF_CHARS,
+      approve: env.REVIEW_APPROVE,
     });
   }
 
@@ -17,17 +18,25 @@ function createVcsService(env: Env): VcsService {
     username: env.BITBUCKET_USERNAME!,
     appPassword: env.BITBUCKET_APP_PASSWORD!,
     maxDiffChars: env.MAX_DIFF_CHARS,
+    approve: env.REVIEW_APPROVE,
   });
 }
 
 export function createReviewServiceFromEnv() {
   const env = loadEnv();
   const vcs = createVcsService(env);
-  const ai = new AIService({
-    AI_PROVIDER: env.AI_PROVIDER,
-    AI_MODEL: env.AI_MODEL,
-    OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
-    OLLAMA_BASE_URL: env.OLLAMA_BASE_URL,
-  });
+  const ai = new AIService(
+    {
+      AI_PROVIDER: env.AI_PROVIDER,
+      AI_MODEL: env.AI_MODEL,
+      OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
+      OLLAMA_BASE_URL: env.OLLAMA_BASE_URL,
+    },
+    {
+      severityMin: env.REVIEW_SEVERITY_MIN,
+      focus: env.REVIEW_FOCUS,
+      inline: env.REVIEW_INLINE,
+    },
+  );
   return { env, reviewService: new ReviewService(vcs, ai) };
 }

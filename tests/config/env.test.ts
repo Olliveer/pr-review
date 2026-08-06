@@ -86,4 +86,48 @@ describe("loadEnv", () => {
 
     expect(() => loadEnv()).toThrow(/BITBUCKET_USERNAME/);
   });
+
+  it("loads review policy defaults", () => {
+    process.env = {
+      ...ORIGINAL,
+      BITBUCKET_USERNAME: "user",
+      BITBUCKET_APP_PASSWORD: "pass",
+      BITBUCKET_WEBHOOK_SECRET: "secret",
+      AI_PROVIDER: "ollama",
+      AI_MODEL: "gemma4:e4b",
+      OLLAMA_BASE_URL: "http://localhost:11434",
+    };
+    delete process.env.REVIEW_SEVERITY_MIN;
+    delete process.env.REVIEW_FOCUS;
+    delete process.env.REVIEW_INLINE;
+    delete process.env.REVIEW_APPROVE;
+
+    const env = loadEnv();
+    expect(env.REVIEW_SEVERITY_MIN).toBe("warning");
+    expect(env.REVIEW_FOCUS).toBe("all");
+    expect(env.REVIEW_INLINE).toBe(true);
+    expect(env.REVIEW_APPROVE).toBe(true);
+  });
+
+  it("parses review policy flags", () => {
+    process.env = {
+      ...ORIGINAL,
+      BITBUCKET_USERNAME: "user",
+      BITBUCKET_APP_PASSWORD: "pass",
+      BITBUCKET_WEBHOOK_SECRET: "secret",
+      AI_PROVIDER: "ollama",
+      AI_MODEL: "gemma4:e4b",
+      OLLAMA_BASE_URL: "http://localhost:11434",
+      REVIEW_SEVERITY_MIN: "critical",
+      REVIEW_FOCUS: "security",
+      REVIEW_INLINE: "false",
+      REVIEW_APPROVE: "false",
+    };
+
+    const env = loadEnv();
+    expect(env.REVIEW_SEVERITY_MIN).toBe("critical");
+    expect(env.REVIEW_FOCUS).toBe("security");
+    expect(env.REVIEW_INLINE).toBe(false);
+    expect(env.REVIEW_APPROVE).toBe(false);
+  });
 });

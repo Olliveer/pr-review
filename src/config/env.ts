@@ -3,6 +3,12 @@ import { z } from "zod";
 
 loadDotenv();
 
+const booleanFlag = (defaultValue: "true" | "false") =>
+  z
+    .enum(["true", "false"])
+    .default(defaultValue)
+    .transform((value) => value === "true");
+
 const baseSchema = z.object({
   VCS_PROVIDER: z.enum(["bitbucket", "github"]).default("bitbucket"),
   BITBUCKET_USERNAME: z.string().optional(),
@@ -15,6 +21,12 @@ const baseSchema = z.object({
   OLLAMA_BASE_URL: z.string().url().default("http://localhost:11434"),
   PORT: z.coerce.number().int().positive().default(3000),
   MAX_DIFF_CHARS: z.coerce.number().int().positive().default(80_000),
+  REVIEW_SEVERITY_MIN: z.enum(["info", "warning", "critical"]).default("warning"),
+  REVIEW_FOCUS: z
+    .enum(["all", "bugs", "security", "performance"])
+    .default("all"),
+  REVIEW_INLINE: booleanFlag("true"),
+  REVIEW_APPROVE: booleanFlag("true"),
 });
 
 export type Env = z.infer<typeof baseSchema>;

@@ -10,6 +10,7 @@ import type { PostReviewResult, PrRef, VcsService } from "../vcs/types.ts";
 export interface GitHubConfig {
   token: string;
   maxDiffChars: number;
+  approve?: boolean;
 }
 
 function severityLabel(severity: Severity): string {
@@ -120,17 +121,19 @@ export class GitHubService implements VcsService {
     }
 
     let approved = false;
-    try {
-      await this.http.post(
-        `/repos/${ref.owner}/${ref.repo}/pulls/${ref.pullRequestId}/reviews`,
-        {
-          commit_id: headSha,
-          event: "APPROVE",
-        },
-      );
-      approved = true;
-    } catch (error) {
-      console.error("Falha ao aprovar o pull request", error);
+    if (this.config.approve !== false) {
+      try {
+        await this.http.post(
+          `/repos/${ref.owner}/${ref.repo}/pulls/${ref.pullRequestId}/reviews`,
+          {
+            commit_id: headSha,
+            event: "APPROVE",
+          },
+        );
+        approved = true;
+      } catch (error) {
+        console.error("Falha ao aprovar o pull request", error);
+      }
     }
 
     return { generalPosted: true, inlinePosted, inlineFailed, approved };
